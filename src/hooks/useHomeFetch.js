@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef }from 'react';
 // API
 import API from '../API';
+// Helpers
+import { isPersistedState } from '../helpers';
 
 const initialState = {
     page: 0,
@@ -16,7 +18,7 @@ export const useHomeFetch = () => {
     const [error, setError] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-    const fetchMovies = async(page, searchTerm = "") => {
+    const fetchMovies = async(page, searchTerm = '') => {
         try {
             setError(false);
             setLoading(true);
@@ -27,7 +29,7 @@ export const useHomeFetch = () => {
                 ...movies,
                 results:
                     page > 1 ? [...prev.results, ...movies.results] : [...movies.results]
-            }))
+            }));
 
         } catch (error) {
             setError(true);
@@ -35,12 +37,23 @@ export const useHomeFetch = () => {
         setLoading(false);
     };
 
-    // Initial and search
+    // Search and Initial
     useEffect(() => {
+        if(!searchTerm) {
+            const sessionState = isPersistedState('homeState');
+
+            if(sessionState) {
+                console.log('Saisie du stockage de la session')
+                setState(sessionState);
+                return;
+            }
+        }
+        console.log("Saisie de l'API");
         setState(initialState);
         fetchMovies(1, searchTerm)
     }, [searchTerm]);
 
+    // Load More
     useEffect(() => {
         if(!isLoadingMore) return;
 
@@ -48,6 +61,11 @@ export const useHomeFetch = () => {
         setIsLoadingMore(false);
 
     }, [isLoadingMore, searchTerm, state.page]);
+
+    // Write to sessionStorage
+    useEffect(() => {
+        if(!searchTerm) sessionStorage.setItem('homeState', JSON.stringify(state))
+    }, [searchTerm, state])
 
     return { state, loading, error, searchTerm, setSearchTerm, setIsLoadingMore };
 };
